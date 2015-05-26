@@ -1,0 +1,1 @@
+include 'authcode', 'client_credentials', 'implicit', 'password', 'common'

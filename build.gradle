@@ -1,0 +1,82 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.3.RELEASE")
+  }
+}
+
+configure([project(":common")]) {
+  apply plugin: 'java'
+  archivesBaseName = "identity-samples-common"
+}
+
+configure([project(":authcode"), project(":implicit"), project(":password"), project(":client_credentials")]) {
+
+  apply plugin: 'eclipse'
+  apply plugin: 'idea'
+  apply plugin: 'java'
+  apply plugin: 'spring-boot'
+
+  evaluationDependsOn(':common')
+
+  repositories {
+    mavenCentral()
+  }
+
+  dependencies {
+    compile project(":common")
+    compile 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    compile 'org.springframework.cloud:spring-cloud-starter-oauth2:1.0.1.RELEASE'
+  }
+
+  def runConfigForBoot = {
+    systemProperty "server.port", "8888"
+    systemProperty "ID_SERVICE_URL", System.getProperty("ID_SERVICE_URL", "http://localhost:8080/uaa")
+    systemProperty "CLIENT_SECRET", System.getProperty("CLIENT_SECRET", "secret")
+    switch (project.name) {
+      case 'authcode':
+        systemProperty "CLIENT_ID", System.getProperty("CLIENT_ID", "oauth_showcase_authorization_code")
+        break
+      case 'password':
+        systemProperty "CLIENT_ID", System.getProperty("CLIENT_ID", "oauth_showcase_password_grant")
+        break
+      case 'implicit':
+        systemProperty "CLIENT_ID", System.getProperty("CLIENT_ID", "oauth_showcase_implicit_grant")
+        break
+      case 'client_credentials':
+        systemProperty "CLIENT_ID", System.getProperty("CLIENT_ID", "oauth_showcase_client_credentials")
+        break
+      default: throw new IllegalArgumentException("Invalid project name:" + project.name) //should never happen based on our filter
+    }
+  }
+
+  run {
+    configure runConfigForBoot
+  }
+
+  bootRun {
+    configure runConfigForBoot
+  }
+
+  bootRepackage << {
+    switch (project.name) {
+      case 'authcode':
+        mainClass = 'org.cloudfoundry.identity.samples.authcode.Application'
+        break
+      case 'password':
+        mainClass = 'org.cloudfoundry.identity.samples.password.Application'
+        break
+      case 'implicit':
+        mainClass = 'org.cloudfoundry.identity.samples.implicit.Application'
+        break
+      case 'client_credentials':
+        mainClass = 'org.cloudfoundry.identity.samples.clientcredentials.Application'
+        break
+      default: throw new IllegalArgumentException("Invalid project name:" + project.name) //should never happen based on our filter
+    }
+
+  }
+
+}
